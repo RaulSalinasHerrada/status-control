@@ -44,19 +44,19 @@ async fn hello() -> impl Responder {
     HttpResponse::Ok().body("Hello world from status!")
 }
 
-#[get("/tables")]
+#[get("/")]
 async fn get_tables(tables: Data<TableDb>) -> impl Responder {
     let table_db = tables.lock().unwrap();
     HttpResponse::Ok().json(&*table_db)
 }
 
-#[get("/tasks")]
+#[get("/")]
 async fn get_tasks(tasks: Data<TaskDb>) -> impl Responder {
     let db = tasks.lock().unwrap();
     HttpResponse::Ok().json(&*db)
 }
 
-#[get("/task/{task_hash}")]
+#[get("/{task_hash}")]
 async fn get_task_status(task_hash: Path<String>, tasks: Data<TaskDb>) -> impl Responder {
     let task_db = tasks.lock().unwrap();
     let task_hash = task_hash.into_inner();
@@ -69,7 +69,7 @@ async fn get_task_status(task_hash: Path<String>, tasks: Data<TaskDb>) -> impl R
     HttpResponse::Ok().json(status)
 }
 
-#[get("/table/{table_name}")]
+#[get("/{table_name}")]
 async fn get_table_status(table_name: Path<String>, tables: Data<TableDb>) -> impl Responder {
     let table_db = tables.lock().unwrap();
     let table_name = table_name.into_inner();
@@ -82,7 +82,7 @@ async fn get_table_status(table_name: Path<String>, tables: Data<TableDb>) -> im
     HttpResponse::Ok().json(status)
 }
 
-#[post("/table/add/")]
+#[post("/add/")]
 async fn add_table_status(table: Json<TablePost>, tables: Data<TableDb>) -> impl Responder {
     let mut table_db = tables.lock().unwrap();
 
@@ -99,7 +99,7 @@ async fn add_table_status(table: Json<TablePost>, tables: Data<TableDb>) -> impl
     HttpResponse::Created()
 }
 
-#[post("/task/add/")]
+#[post("/add/")]
 async fn add_task_status(task: Json<TaskPost>, tasks: Data<TaskDb>) -> impl Responder {
     let mut task_db = tasks.lock().unwrap();
     let task = task.into_inner();
@@ -128,12 +128,18 @@ async fn main() -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clon
             scope("/v1")
                 .wrap(Logger::default())
                 .service(hello)
-                .service(get_tasks)
-                .service(get_tables)
-                .service(get_table_status)
-                .service(get_task_status)
-                .service(add_table_status)
-                .service(add_task_status)
+                .service(
+                    scope("/task")
+                    .service(get_tasks)
+                    .service(get_task_status)
+                    .service(add_task_status)
+                )
+                .service(
+                    scope("/table")
+                    .service(get_tables)
+                    .service(get_table_status)
+                    .service(add_table_status)
+                )
                 .app_data(Data::new(tables.clone()))
                 .app_data(Data::new(tasks.clone())),
         );
