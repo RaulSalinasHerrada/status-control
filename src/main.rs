@@ -16,7 +16,10 @@ use actix_web::middleware::Logger;
 use actix_web::web::ServiceConfig;
 use shuttle_actix_web::ShuttleActixWeb;
 
+use actix_web_httpauth::{extractors::bearer::BearerAuth, middleware::HttpAuthentication};
+
 use model::*;
+use security::validator;
 use tables::*;
 use tasks::*;
 
@@ -31,10 +34,13 @@ async fn main() -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clon
     let tables: TableDb = Arc::new(Mutex::new(HashMap::new()));
     let tasks: TaskDb = Arc::new(Mutex::new(HashMap::new()));
 
+    let auth = HttpAuthentication::with_fn(validator);
+
     // set up our Actix web service and wrap it with logger and add the AppState as app data
     let config = move |cfg: &mut ServiceConfig| {
         cfg.service(
             scope("/v1")
+                .wrap(auth)
                 .wrap(Logger::default())
                 .service(hello)
                 .service(

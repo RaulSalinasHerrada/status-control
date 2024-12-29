@@ -14,14 +14,20 @@ pub enum Status {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+
 pub struct TablePost {
+    #[serde(alias = "table")]
     pub table_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<Status>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+
 pub struct TaskPost {
+    #[serde(alias = "task")]
     pub task_hash: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<Status>,
 }
 
