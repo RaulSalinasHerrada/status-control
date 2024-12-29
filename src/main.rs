@@ -16,10 +16,10 @@ use actix_web::middleware::Logger;
 use actix_web::web::ServiceConfig;
 use shuttle_actix_web::ShuttleActixWeb;
 
-use actix_web_httpauth::{extractors::bearer::BearerAuth, middleware::HttpAuthentication};
+use actix_web_httpauth::middleware::HttpAuthentication;
 
 use model::*;
-use security::validator;
+use security::*;
 use tables::*;
 use tasks::*;
 
@@ -40,17 +40,19 @@ async fn main() -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clon
     let config = move |cfg: &mut ServiceConfig| {
         cfg.service(
             scope("/v1")
-                .wrap(auth)
                 .wrap(Logger::default())
                 .service(hello)
+                .service(basic_auth)
                 .service(
                     scope("/task")
+                        .wrap(auth.clone())
                         .service(get_tasks)
                         .service(get_task_status)
                         .service(add_task_status),
                 )
                 .service(
                     scope("/table")
+                        .wrap(auth.clone())
                         .service(get_tables)
                         .service(get_table_status)
                         .service(add_table_status),
