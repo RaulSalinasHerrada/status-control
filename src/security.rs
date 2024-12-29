@@ -26,9 +26,6 @@ const JWT_SECRET: &str = "supersecretjwt";
 const HASH_SECRET: &str = "c3VwZXJzZWNyZXRoYXNo";
 const PASS_SECRET: &str = "thisisapassword";
 
-pub type UserDb = Arc<Mutex<HashMap<String, u8>>>;
-pub type PassDb = Arc<Mutex<HashMap<u8, String>>>;
-
 #[derive(Serialize, Deserialize, Clone)]
 struct TokenClaims {
     id: String,
@@ -86,19 +83,14 @@ pub async fn validator(
 
 #[get("/auth")]
 pub async fn basic_auth(credentials: BasicAuth) -> impl Responder {
-    let jwt_secret: Hmac<Sha256> = Hmac::new_from_slice(
-        JWT_SECRET.as_bytes(),
-    )
-    .unwrap();
+    let jwt_secret: Hmac<Sha256> = Hmac::new_from_slice(JWT_SECRET.as_bytes()).unwrap();
 
     let user = credentials.user_id();
     let pass_auth = credentials.password();
 
-
     match pass_auth {
         None => HttpResponse::Unauthorized().json("Must provide password"),
-        Some(pass ) => {
-
+        Some(pass) => {
             let argon = Argon2::default();
             let salt = SaltString::from_b64(HASH_SECRET).unwrap();
 
@@ -106,16 +98,11 @@ pub async fn basic_auth(credentials: BasicAuth) -> impl Responder {
             match argon.verify_password(PASS_SECRET.as_bytes(), &hashed) {
                 Err(_) => HttpResponse::Unauthorized().body("Invalid user or pass"),
                 Ok(_) => {
-
-                    let token = TokenClaims::new(user)
-                    .sign_with_key(&jwt_secret)
-                    .unwrap();
+                    let token = TokenClaims::new(user).sign_with_key(&jwt_secret).unwrap();
 
                     HttpResponse::Ok().json(token)
-
                 }
             }
-
         }
     }
 }
