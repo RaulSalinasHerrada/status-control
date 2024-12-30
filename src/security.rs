@@ -1,4 +1,3 @@
-use std::str::FromStr;
 
 use actix_web::{dev::ServiceRequest, error, get, Error, HttpMessage, HttpResponse, Responder};
 use actix_web_httpauth::extractors::{
@@ -70,7 +69,7 @@ pub async fn validator(
 #[get("/auth")]
 pub async fn basic_auth(credentials: BasicAuth) -> impl Responder {
     let jwt_secret = std::env::var("JWT_SECRET").unwrap();
-    let jwt_key: Hmac<Sha256> = Hmac::new_from_slice(&jwt_secret.as_bytes()).unwrap();
+    let jwt_key: Hmac<Sha256> = Hmac::new_from_slice(jwt_secret.as_bytes()).unwrap();
 
     let user = credentials.user_id();
     let pass_auth = credentials.password();
@@ -84,7 +83,7 @@ pub async fn basic_auth(credentials: BasicAuth) -> impl Responder {
             let salt = SaltString::from_b64(&hash_secret).unwrap();
 
             let hashed = argon.hash_password(pass.as_bytes(), &salt).unwrap();
-            match argon.verify_password(&pass_secret.as_bytes(), &hashed) {
+            match argon.verify_password(pass_secret.as_bytes(), &hashed) {
                 Err(_) => HttpResponse::Unauthorized().body("Invalid user or pass"),
                 Ok(_) => {
                     let token = TokenClaims::new(user).sign_with_key(&jwt_key).unwrap();
