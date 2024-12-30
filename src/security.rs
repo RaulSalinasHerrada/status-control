@@ -1,12 +1,6 @@
-use std::{
-    collections::HashMap,
-    str::FromStr,
-    sync::{Arc, Mutex},
-};
+use std::str::FromStr;
 
-use actix_web::{
-    dev::ServiceRequest, error, get, web::Data, Error, HttpMessage, HttpResponse, Responder,
-};
+use actix_web::{dev::ServiceRequest, error, get, Error, HttpMessage, HttpResponse, Responder};
 use actix_web_httpauth::extractors::{
     basic::BasicAuth,
     bearer::{BearerAuth, Config},
@@ -18,13 +12,9 @@ use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 
 use argon2::{
-    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
+    password_hash::{PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
-
-const JWT_SECRET: &str = "supersecretjwt";
-const HASH_SECRET: &str = "c3VwZXJzZWNyZXRoYXNo";
-const PASS_SECRET: &str = "thisisapassword";
 
 #[derive(Serialize, Deserialize, Clone)]
 struct TokenClaims {
@@ -45,18 +35,15 @@ pub async fn validator(
     req: ServiceRequest,
     credentials: Option<BearerAuth>,
 ) -> Result<ServiceRequest, (Error, ServiceRequest)> {
-    let jwt_secret = match std::env::var("JWT_SECRET") {
-        Ok(x) => x,
-        Err(_) => String::from_str(JWT_SECRET).expect("Fallback on jwt failed"),
-    };
-
-    let key: Hmac<Sha256> = Hmac::new_from_slice(jwt_secret.as_bytes()).unwrap();
+    
+    let jwt_secret = std::env::var("JWT_SECRET").unwrap();
+    let jwt_key: Hmac<Sha256> = Hmac::new_from_slice(jwt_secret.as_bytes()).unwrap();
 
     match credentials {
         Some(credentials) => {
             let claims: Result<TokenClaims, &str> = credentials
                 .token()
-                .verify_with_key(&key)
+                .verify_with_key(&jwt_key)
                 .map_err(|_| "Invalid token");
 
             match claims {
@@ -83,7 +70,9 @@ pub async fn validator(
 
 #[get("/auth")]
 pub async fn basic_auth(credentials: BasicAuth) -> impl Responder {
-    let jwt_secret: Hmac<Sha256> = Hmac::new_from_slice(JWT_SECRET.as_bytes()).unwrap();
+
+    let jwt_secret = std::env::var("JWT_SECRET").unwrap();
+    let jwt_key: Hmac<Sha256> = Hmac::new_from_slice(&jwt_secret.as_bytes()).unwrap();
 
     let user = credentials.user_id();
     let pass_auth = credentials.password();
@@ -91,14 +80,17 @@ pub async fn basic_auth(credentials: BasicAuth) -> impl Responder {
     match pass_auth {
         None => HttpResponse::Unauthorized().json("Must provide password"),
         Some(pass) => {
+
+            let hash_secret = std::env::var("HASH_SECRET").unwrap();
+            let pass_secret = std::env::var("PASS_SECRET").unwrap();
             let argon = Argon2::default();
-            let salt = SaltString::from_b64(HASH_SECRET).unwrap();
+            let salt = SaltString::from_b64(&hash_secret).unwrap();
 
             let hashed = argon.hash_password(pass.as_bytes(), &salt).unwrap();
-            match argon.verify_password(PASS_SECRET.as_bytes(), &hashed) {
+            match argon.verify_password(&pass_secret.as_bytes(), &hashed) {
                 Err(_) => HttpResponse::Unauthorized().body("Invalid user or pass"),
                 Ok(_) => {
-                    let token = TokenClaims::new(user).sign_with_key(&jwt_secret).unwrap();
+                    let token = TokenClaims::new(user).sign_with_key(&jwt_key).unwrap();
 
                     HttpResponse::Ok().json(token)
                 }

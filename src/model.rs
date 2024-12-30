@@ -5,7 +5,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Copy)]
+#[derive(Serialize, Deserialize, Copy, Clone)]
 pub enum Status {
     Failure,
     NonStarted,
@@ -14,19 +14,15 @@ pub enum Status {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-
 pub struct TablePost {
-    #[serde(alias = "table")]
-    pub table_name: String,
+    pub table: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<Status>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-
 pub struct TaskPost {
-    #[serde(alias = "task")]
-    pub task_hash: String,
+    pub task: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<Status>,
 }

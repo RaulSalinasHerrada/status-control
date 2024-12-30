@@ -32,7 +32,7 @@ pub async fn add_task_status(task: Json<TaskPost>, tasks: Data<TaskDb>) -> impl 
     let mut task_db = tasks.lock().unwrap();
     let task = task.into_inner();
 
-    let task_hash = task.task_hash;
+    let task_hash = task.task;
 
     let status = match task.status {
         Some(x) => x,
