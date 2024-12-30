@@ -29,7 +29,6 @@ async fn hello() -> impl Responder {
 async fn main(
     #[shuttle_runtime::Secrets] secrets: SecretStore,
 ) -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clone + 'static> {
-    
     let tables: TableDb = Arc::new(Mutex::new(HashMap::new()));
     let tasks: TaskDb = Arc::new(Mutex::new(HashMap::new()));
 

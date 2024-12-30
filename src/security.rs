@@ -35,7 +35,6 @@ pub async fn validator(
     req: ServiceRequest,
     credentials: Option<BearerAuth>,
 ) -> Result<ServiceRequest, (Error, ServiceRequest)> {
-    
     let jwt_secret = std::env::var("JWT_SECRET").unwrap();
     let jwt_key: Hmac<Sha256> = Hmac::new_from_slice(jwt_secret.as_bytes()).unwrap();
 
@@ -70,7 +69,6 @@ pub async fn validator(
 
 #[get("/auth")]
 pub async fn basic_auth(credentials: BasicAuth) -> impl Responder {
-
     let jwt_secret = std::env::var("JWT_SECRET").unwrap();
     let jwt_key: Hmac<Sha256> = Hmac::new_from_slice(&jwt_secret.as_bytes()).unwrap();
 
@@ -80,7 +78,6 @@ pub async fn basic_auth(credentials: BasicAuth) -> impl Responder {
     match pass_auth {
         None => HttpResponse::Unauthorized().json("Must provide password"),
         Some(pass) => {
-
             let hash_secret = std::env::var("HASH_SECRET").unwrap();
             let pass_secret = std::env::var("PASS_SECRET").unwrap();
             let argon = Argon2::default();
