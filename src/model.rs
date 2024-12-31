@@ -27,5 +27,5 @@ pub struct TaskPost {
     pub status: Option<Status>,
 }
 
-pub type TableDb = Arc<Mutex<HashMap<String, Status>>>;
-pub type TaskDb = Arc<Mutex<HashMap<String, Status>>>;
+pub type TableDb = Mutex<HashMap<String, Status>>;
+pub type TaskDb = Mutex<HashMap<String, Status>>;

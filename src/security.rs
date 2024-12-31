@@ -1,4 +1,3 @@
-
 use actix_web::{dev::ServiceRequest, error, get, Error, HttpMessage, HttpResponse, Responder};
 use actix_web_httpauth::extractors::{
     basic::BasicAuth,
