@@ -1,20 +1,21 @@
+mod error_passing;
 mod model;
 mod security;
 mod tables;
 mod tasks;
 
-use actix_web::middleware::Logger;
-use actix_web::web::Data;
-use actix_web::web::ServiceConfig;
+use actix_web::http::StatusCode;
+use actix_web::middleware::{ErrorHandlers, Logger};
+use actix_web::web::{Data, ServiceConfig};
 use actix_web::{get, web::scope, HttpResponse, Responder};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use shuttle_actix_web::ShuttleActixWeb;
 use shuttle_runtime::SecretStore;
 use std::{collections::HashMap, sync::Mutex};
 
+use error_passing::*;
 use model::*;
 use security::*;
-
 use tables::*;
 use tasks::*;
 
@@ -23,21 +24,6 @@ async fn hello() -> impl Responder {
     HttpResponse::Ok().body("Hello world from status!")
 }
 
-// #[get("/join/{name}")]
-// async fn join(name: Path<String>) -> impl Responder {
-//     let out = format!("Join us {name}!");
-//     let width = 256;
-
-//     let mut buf = BufWriter::new(Vec::new());
-//     say(out.as_str(), width, &mut buf).unwrap();
-
-//     let bytes = buf.into_inner().unwrap();
-//     let msg = String::from_utf8(bytes).unwrap();
-
-//     HttpResponse::Ok().body(msg)
-// }
-
-// #[actix_web::main]
 #[shuttle_runtime::main]
 async fn main(
     #[shuttle_runtime::Secrets] secrets: SecretStore,
@@ -56,6 +42,10 @@ async fn main(
         cfg.service(
             scope("/v1")
                 .wrap(Logger::default())
+                .wrap(
+                    ErrorHandlers::new()
+                        .handler(StatusCode::INTERNAL_SERVER_ERROR, add_error_header),
+                )
                 .service(hello)
                 .service(basic_auth)
                 .service(
@@ -72,8 +62,9 @@ async fn main(
                         .service(get_table_status)
                         .service(add_table_status),
                 )
-                .app_data(Data::new(tables.clone()))
-                .app_data(Data::new(tasks.clone())),
+                .app_data(tables.clone())
+                .app_data(tasks.clone())
+                ,
         );
     };
 
